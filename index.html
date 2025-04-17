@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>神奇日食模拟器</title>
+    <style>
+        :root {
+            --primary-color: #4a6bdf;
+            --secondary-color: #ff6b6b;
+            --accent-color: #feca57;
+            --bg-color: #f7f9ff;
+            --panel-color: #e8f4ff;
+            --text-color: #2c3e50;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+        
+        /* 控制面板 */
+        .control-panel {
+            width: 350px;
+            background-color: var(--panel-color);
+            padding: 20px;
+            border-right: 3px solid var(--primary-color);
+            box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            z-index: 10;
+            transition: transform 0.3s;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .toggle-panel {
+            background: var(--accent-color);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+        }
+        
+        .date-input {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--primary-color);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 16px;
+        }
+        
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 10px;
+            border-left: 5px solid var(--accent-color);
+            font-weight: bold;
+            text-align: center;
+            display: none;
+        }
+        
+        .timeline {
+            margin: 30px 0;
+        }
+        
+        .timeline-slider {
+            width: 100%;
+            height: 20px;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, #4a6bdf, #feca57);
+            border-radius: 10px;
+            outline: none;
+            margin-top: 10px;
+        }
+        
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 30px;
+            height: 30px;
+            background: var(--secondary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        
+        .explanation {
+            margin-top: 30px;
+        }
+        
+        .explanation h2 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .explanation-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .explanation-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .explanation-item.total {
+            border-left-color: #e74c3c;
+        }
+        
+        .explanation-item.annular {
+            border-left-color: #3498db;
+        }
+        
+        .explanation-item.partial {
+            border-left-color: #2ecc71;
+        }
+        
+        .explanation-item h3 {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .explanation-item h3 span {
+            margin-left: 8px;
+        }
+        
+        /* 展示区 */
+        .display-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+        }
+        
+        .celestial-body {
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+        
+        .sun {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle at 30% 30%, #ffcc00, #ff6600);
+            top: 50%;
+            left: 70%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 50px #ff6600;
+            z-index: 1;
+        }
+        
+        .earth {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle at 30% 30%, #3498db, #2c3e50);
+            top: 50%;
+            left: 30%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+        
+        .moon {
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle at 30% 30%, #ecf0f1, #bdc3c7);
+            top: 50%;
+            left: 30%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            transition: all 1s ease-in-out;
+        }
+        
+        .eclipse-effect {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(0,0,0,0.7);
+            top: 50%;
+            left: 70%;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+            display: none;
+        }
+        
+        .orbit {
+            position: absolute;
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 50%;
+            top: 50%;
+            left: 30%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+        
+        .earth-orbit {
+            width: 600px;
+            height: 600px;
+        }
+        
+        .moon-orbit {
+            width: 200px;
+            height: 100px;
+            transform: translate(-50%, -50%) rotate(15deg);
+            display: none;
+        }
+        
+        .info-text {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px;
+            z-index: 10;
+        }
+        
+        /* 科技风元素 */
+        .tech-circle {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(74, 107, 223, 0.5);
+            pointer-events: none;
+        }
+        
+        .tech-line {
+            position: absolute;
+            background: linear-gradient(to right, transparent, rgba(74, 107, 223, 0.5), transparent);
+            height: 1px;
+            pointer-events: none;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .control-panel {
+                position: absolute;
+                left: -350px;
+            }
+            
+            .control-panel.open {
+                transform: translateX(350px);
+            }
+            
+            .toggle-panel {
+                display: block;
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 100;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 控制面板 -->
+    <div class="control-panel" id="controlPanel">
+        <div class="panel-header">
+            <h1>🌓 神奇日食模拟器</h1>
+        </div>
+        
+        <div class="date-input">
+            <label for="datePicker">选择日期:</label>
+            <input type="date" id="datePicker">
+            <div class="result" id="result"></div>
+        </div>
+        
+        <div class="timeline">
+            <label>时间轴:</label>
+            <input type="range" min="0" max="100" value="50" class="timeline-slider" id="timelineSlider">
+        </div>
+        
+        <div class="explanation">
+            <h2>📚 日食形成原理</h2>
+            
+            <div class="explanation-item total" onclick="showEclipse('total')">
+                <h3>🔴 日全食</h3>
+                <p>月球距离地球近，能完全遮住太阳，形成日全食</p>
+            </div>
+            
+            <div class="explanation-item annular" onclick="showEclipse('annular')">
+                <h3>🔵 日环食</h3>
+                <p>月球距离地球远，不能完全遮住太阳，形成日环食</p>
+            </div>
+            
+            <div class="explanation-item partial" onclick="showEclipse('partial')">
+                <h3>🟢 日偏食</h3>
+                <p>月球轨道倾斜，高度改变，只遮住太阳边缘部分</p>
+            </div>
+        </div>
+    </div>
+    
+    <button class="toggle-panel" id="togglePanel">≡</button>
+    
+    <!-- 展示区 -->
+    <div class="display-area">
+        <!-- 科技风装饰元素 -->
+        <div class="tech-circle" style="width: 300px; height: 300px; top: 20%; left: 20%;"></div>
+        <div class="tech-circle" style="width: 200px; height: 200px; top: 70%; left: 80%;"></div>
+        <div class="tech-line" style="width: 100px; top: 30%; left: 10%; transform: rotate(45deg);"></div>
+        <div class="tech-line" style="width: 150px; top: 80%; left: 70%; transform: rotate(-20deg);"></div>
+        
+        <!-- 天体 -->
+        <div class="orbit earth-orbit"></div>
+        <div class="orbit moon-orbit" id="moonOrbit"></div>
+        
+        <div class="celestial-body sun" id="sun"></div>
+        <div class="celestial-body earth" id="earth"></div>
+        <div class="celestial-body moon" id="moon"></div>
+        
+        <!-- 日食效果 -->
+        <div class="eclipse-effect" id="totalEclipse" style="width: 160px; height: 160px;"></div>
+        <div class="eclipse-effect" id="annularEclipse" style="width: 140px; height: 140px; background-color: transparent; box-shadow: 0 0 0 10px rgba(0,0,0,0.7);"></div>
+        <div class="eclipse-effect" id="partialEclipse" style="width: 100px; height: 100px; left: 75%;"></div>
+        
+        <div class="info-text" id="infoText">请选择日期或点击原理查看日食模拟</div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const datePicker = document.getElementById('datePicker');
+        const result = document.getElementById('result');
+        const timelineSlider = document.getElementById('timelineSlider');
+        const togglePanel = document.getElementById('togglePanel');
+        const controlPanel = document.getElementById('controlPanel');
+        
+        const sun = document.getElementById('sun');
+        const earth = document.getElementById('earth');
+        const moon = document.getElementById('moon');
+        const moonOrbit = document.getElementById('moonOrbit');
+        
+        const totalEclipse = document.getElementById('totalEclipse');
+        const annularEclipse = document.getElementById('annularEclipse');
+        const partialEclipse = document.getElementById('partialEclipse');
+        const infoText = document.getElementById('infoText');
+        
+        // 已知日食日期数据
+        const eclipseDates = {
+            '2009-07-22': { type: 'total', name: '日全食' },
+            '1987-09-23': { type: 'annular', name: '日环食' },
+            '2023-04-20': { type: 'partial', name: '日偏食' }
+        };
+        
+        // 初始化日期选择器为今天
+        datePicker.valueAsDate = new Date();
+        
+        // 日期选择事件
+        datePicker.addEventListener('change', function() {
+            const selectedDate = this.value;
+            const eclipse = eclipseDates[selectedDate];
+            
+            if (eclipse) {
+                result.textContent = `这一天发生了${eclipse.name}！`;
+                result.style.display = 'block';
+                showEclipse(eclipse.type);
+            } else {
+                result.textContent = '这一天没有记录到日食';
+                result.style.display = 'block';
+                hideAllEclipses();
+            }
+        });
+        
+        // 时间轴滑动事件
+        timelineSlider.addEventListener('input', function() {
+            const value = this.value;
+            const moonX = 30 + (value / 100) * 40;
+            const moonY = 50 + Math.sin(value / 10) * 10;
+            
+            moon.style.left = `${moonX}%`;
+            moon.style.top = `${moonY}%`;
+        });
+        
+        // 显示日食效果
+        function showEclipse(type) {
+            hideAllEclipses();
+            moonOrbit.style.display = 'none';
+            
+            switch(type) {
+                case 'total':
+                    totalEclipse.style.display = 'block';
+                    infoText.textContent = '日全食：月球完全遮挡太阳';
+                    animateMoonToEclipse(1.1);
+                    break;
+                case 'annular':
+                    annularEclipse.style.display = 'block';
+                    infoText.textContent = '日环食：月球不能完全遮挡太阳，形成光环';
+                    animateMoonToEclipse(0.9);
+                    break;
+                case 'partial':
+                    partialEclipse.style.display = 'block';
+                    moonOrbit.style.display = 'block';
+                    infoText.textContent = '日偏食：月球只遮挡太阳的一部分';
+                    animateMoonToPartial();
+                    break;
+            }
+        }
+        
+        // 隐藏所有日食效果
+        function hideAllEclipses() {
+            totalEclipse.style.display = 'none';
+            annularEclipse.style.display = 'none';
+            partialEclipse.style.display = 'none';
+            moonOrbit.style.display = 'none';
+        }
+        
+        // 动画：月球移动到日全食/日环食位置
+        function animateMoonToEclipse(scale) {
+            moon.style.transition = 'all 1s ease-in-out';
+            moon.style.width = `${40 * scale}px`;
+            moon.style.height = `${40 * scale}px`;
+            moon.style.left = '70%';
+            moon.style.top = '50%';
+        }
+        
+        // 动画：月球移动到日偏食位置
+        function animateMoonToPartial() {
+            moon.style.transition = 'all 1s ease-in-out';
+            moon.style.width = '40px';
+            moon.style.height = '40px';
+            moon.style.left = '75%';
+            moon.style.top = '45%';
+        }
+        
+        // 切换控制面板显示
+        togglePanel.addEventListener('click', function() {
+            controlPanel.classList.toggle('open');
+        });
+        
+        // 创建更多科技风元素
+        function createTechElements() {
+            const displayArea = document.querySelector('.display-area');
+            
+            for (let i = 0; i < 10; i++) {
+                const circle = document.createElement('div');
+                circle.className = 'tech-circle';
+                circle.style.width = `${Math.random() * 200 + 50}px`;
+                circle.style.height = circle.style.width;
+                circle.style.top = `${Math.random() * 100}%`;
+                circle.style.left = `${Math.random() * 100}%`;
+                displayArea.appendChild(circle);
+                
+                const line = document.createElement('div');
+                line.className = 'tech-line';
+                line.style.width = `${Math.random() * 150 + 50}px`;
+                line.style.top = `${Math.random() * 100}%`;
+                line.style.left = `${Math.random() * 100}%`;
+                line.style.transform = `rotate(${Math.random() * 360}deg)`;
+                displayArea.appendChild(line);
+            }
+        }
+        
+        createTechElements();
+    </script>
+</body>
+</html>
